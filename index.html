@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brats Official - Distributor Kaos (Cloud Storage)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-neutral-100 text-neutral-800">
+
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-40 bg-white shadow-md border-b border-neutral-200">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-black text-white p-2 rounded-lg rotate-3"><i class="fas fa-tshirt text-xl"></i></div>
+                <div class="leading-tight">
+                    <h1 class="text-xl font-black tracking-tighter uppercase">BRATS OFFICIAL</h1>
+                    <p class="text-[9px] font-bold tracking-widest text-neutral-400 uppercase">Distributor Kaos</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative hidden md:block">
+                    <input id="searchInput" type="text" placeholder="Cari kaos..." 
+                        class="pl-9 pr-4 py-2 bg-neutral-100 rounded-lg text-sm w-48 focus:ring-2 focus:ring-black outline-none border border-transparent focus:border-neutral-300">
+                    <i class="fas fa-search absolute left-3 top-3 text-neutral-400 text-xs"></i>
+                </div>
+                
+                <button onclick="toggleCart(true)" class="relative p-2 hover:bg-neutral-100 rounded-full transition">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span id="cartCount" class="hidden absolute top-0 right-0 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">0</span>
+                </button>
+
+                <button id="adminBtn" onclick="toggleLoginModal(true)" class="text-neutral-400 hover:text-black transition">
+                    <i class="fas fa-lock text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="bg-neutral-900 text-white py-20 px-4 text-center">
+        <h2 class="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter">KOLEKSI TERBARU 2024</h2>
+        <p class="text-neutral-400 max-w-xl mx-auto mb-8">Pusat grosir dan eceran kaos berkualitas tinggi. Tersedia ribuan stok siap kirim setiap hari.</p>
+        <div class="flex justify-center gap-4">
+            <button onclick="document.getElementById('catalog').scrollIntoView({behavior:'smooth'})" class="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-neutral-200 transition">Lihat Katalog</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main id="catalog" class="max-w-7xl mx-auto px-4 py-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div class="flex gap-2 p-1 bg-white rounded-xl shadow-sm border border-neutral-200">
+                <button onclick="filterCategory('all')" class="cat-btn px-5 py-2 rounded-lg text-xs font-bold uppercase bg-black text-white transition">SEMUA</button>
+                <button onclick="filterCategory('dewasa')" class="cat-btn px-5 py-2 rounded-lg text-xs font-bold uppercase text-neutral-400 hover:text-neutral-600 transition">DEWASA</button>
+                <button onclick="filterCategory('anak')" class="cat-btn px-5 py-2 rounded-lg text-xs font-bold uppercase text-neutral-400 hover:text-neutral-600 transition">ANAK</button>
+            </div>
+            
+            <div id="adminActions" class="hidden flex gap-2">
+                <button onclick="openProductModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition text-sm shadow-sm">
+                    <i class="fas fa-plus"></i> Tambah Produk
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Database -->
+        <div id="dbStatus" class="mb-4 text-[10px] font-bold text-neutral-400 uppercase flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            Menghubungkan ke Cloud Database...
+        </div>
+
+        <div id="productGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <!-- Produk akan dimuat di sini -->
+        </div>
+    </main>
+
+    <!-- MODAL PRODUCT (FORMULIR DENGAN SCROLL) -->
+    <div id="productModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+            <div class="p-6 border-b flex justify-between items-center bg-white shrink-0">
+                <h3 id="modalTitle" class="font-black text-xl uppercase tracking-tighter">Kelola Produk</h3>
+                <button onclick="closeProductModal()" class="text-neutral-400 hover:text-black transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scroll">
+                <form id="productForm" class="p-6 space-y-5">
+                    <input type="hidden" id="editId">
+                    <div>
+                        <label class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block">Nama Produk</label>
+                        <input required id="pName" type="text" class="w-full border-neutral-200 border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none transition" placeholder="Contoh: Kaos Oversize Brats">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block">Harga (Rp)</label>
+                            <input required id="pPrice" type="number" class="w-full border-neutral-200 border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none transition">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block">Kategori</label>
+                            <select id="pCategory" class="w-full border-neutral-200 border rounded-xl p-3 focus:ring-2 focus:ring-black outline-none transition bg-white">
+                                <option value="dewasa">Dewasa</option>
+                                <option value="anak">Anak</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Deskripsi</label>
+                            <button type="button" id="aiDescBtn" class="text-[10px] bg-neutral-900 text-white px-2 py-1 rounded-md flex items-center gap-1 hover:bg-black transition">
+                                <i class="fas fa-magic text-yellow-400"></i> AI Generate
+                            </button>
+                        </div>
+                        <textarea id="pDesc" class="w-full border-neutral-200 border rounded-xl p-3 text-sm h-28 focus:ring-2 focus:ring-black outline-none transition" placeholder="Jelaskan bahan, ukuran, dan keunggulan..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block">Foto Produk</label>
+                        <div class="space-y-3">
+                            <div id="imagePreviewContainer" class="hidden w-full aspect-square rounded-xl overflow-hidden bg-neutral-100 border relative group">
+                                <img id="imagePreview" src="" class="w-full h-full object-cover">
+                                <button type="button" onclick="removeSelectedImage()" class="absolute top-2 right-2 bg-red-600 text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center hover:bg-red-700 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+                            </div>
+                            
+                            <label class="w-full border-2 border-dashed border-neutral-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-50 transition border-spacing-4">
+                                <i class="fas fa-cloud-upload-alt text-3xl text-neutral-300 mb-2"></i>
+                                <span class="text-xs font-bold text-neutral-500 text-center">Upload JPG/PNG (Max 800KB)</span>
+                                <input id="pImageFile" type="file" accept="image/png, image/jpeg" class="hidden" onchange="handleFileSelect(event)">
+                            </label>
+                            
+                            <div class="flex items-center gap-2">
+                                <div class="h-px bg-neutral-200 flex-1"></div>
+                                <span class="text-[10px] text-neutral-400 font-bold uppercase">Atau Gunakan Link</span>
+                                <div class="h-px bg-neutral-200 flex-1"></div>
+                            </div>
+                            <input id="pImage" type="text" class="w-full border-neutral-200 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="https://image-url.com/foto.jpg">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="p-6 border-t bg-white shrink-0">
+                <button type="submit" form="productForm" id="saveBtn" class="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-neutral-800 transition shadow-lg flex items-center justify-center gap-2">
+                    <span id="saveBtnText">Simpan Produk</span>
+                    <i id="saveBtnIcon" class="fas fa-save"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOGIN -->
+    <div id="loginModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-slide-up">
+            <div class="text-center mb-6">
+                <div class="bg-black text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 rotate-3"><i class="fas fa-user-shield text-xl"></i></div>
+                <h3 class="text-xl font-black uppercase tracking-tighter">Akses Admin</h3>
+                <p class="text-xs text-neutral-400 mt-1 uppercase font-bold tracking-widest">Masukkan PIN Keamanan</p>
+            </div>
+            <input id="adminPin" type="password" placeholder="••••" class="w-full border-neutral-200 border p-4 rounded-xl mb-6 text-center text-2xl tracking-[1em] focus:ring-2 focus:ring-black outline-none">
+            <div class="flex gap-3">
+                <button onclick="toggleLoginModal(false)" class="flex-1 py-3 bg-neutral-100 rounded-xl font-bold hover:bg-neutral-200 transition">Batal</button>
+                <button id="doLoginBtn" class="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800 transition">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CART DRAWER -->
+    <div id="cartDrawer" class="hidden fixed inset-0 z-50 flex justify-end">
+        <div class="absolute inset-0 bg-black/40" onclick="toggleCart(false)"></div>
+        <div id="cartContent" class="relative bg-white w-full max-w-sm h-full shadow-2xl flex flex-col translate-x-full transition-transform duration-300">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h2 class="text-xl font-black uppercase tracking-tighter flex items-center gap-2"><i class="fas fa-shopping-cart"></i> Keranjang</h2>
+                <button onclick="toggleCart(false)" class="text-neutral-400 hover:text-black transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="cartList" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scroll">
+                <div class="text-center py-20 text-neutral-400">Keranjang masih kosong</div>
+            </div>
+            <div id="cartFooter" class="hidden p-6 border-t bg-neutral-50">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="font-bold text-neutral-500 uppercase text-xs">Total Pembayaran:</span>
+                    <span id="cartTotal" class="font-black text-lg text-blue-700">Rp 0</span>
+                </div>
+                <button onclick="checkoutWA()" class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg">
+                    <i class="fab fa-whatsapp text-lg"></i> Pesan via WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t p-12 text-center mt-20">
+        <div class="max-w-xl mx-auto space-y-4">
+            <p class="font-black uppercase tracking-tighter text-2xl">Brats Official</p>
+            <p id="footerAddress" class="text-neutral-500 text-sm italic px-4 leading-relaxed line-clamp-2">Memuat alamat...</p>
+            <div class="flex justify-center gap-4 pt-4 text-neutral-400">
+                <i class="fab fa-instagram text-xl hover:text-pink-600 transition cursor-pointer"></i>
+                <i class="fab fa-tiktok text-xl hover:text-black transition cursor-pointer"></i>
+                <i class="fab fa-whatsapp text-xl hover:text-green-600 transition cursor-pointer"></i>
+            </div>
+        </div>
+        <p class="text-[10px] text-neutral-300 mt-10 uppercase tracking-[0.2em] font-bold">© 2024 Brats Official - All Rights Reserved</p>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Global
+        const STORE_INFO = {
+            phone: "628138265610",
+            address: "Jln. Bakti Mulya II, No 21, Rt/007, Rw/002, Kel. Tegal Alur, Kec. Kalideres, Jakarta Barat, 11820"
+        };
+        
+        let products = [];
+        let cart = [];
+        let currentCategory = 'all';
+        let isAdmin = false;
+        let currentUser = null;
+        let base64Image = "";
+
+        // Firebase Configuration
+        const firebaseConfig = { apiKey: "AIzaSyAy8uD1moy6z6ik6VWdqH3G3BkOrf_eCpQ",
+  authDomain: "brats-official.firebaseapp.com",
+  projectId: "brats-official",
+  storageBucket: "brats-official.firebasestorage.app",
+  messagingSenderId: "972032964591",
+  appId: "toko-brats-official",
+  measurementId: "G-4KCFCEZ9DK" }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'distributor-kaos-001';
+
+        // --- AUTHENTICATION HANDLER ---
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Failure:", error);
+                showStatus("Gagal Autentikasi", "red");
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                showStatus("Terhubung ke Cloud Database", "green");
+                subscribeToProducts();
+            }
+        });
+
+        // --- DATABASE OPERATIONS ---
+        function subscribeToProducts() {
+            if (!currentUser) return;
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'products'));
+            onSnapshot(q, (snapshot) => {
+                products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                products.sort((a, b) => a.name.localeCompare(b.name));
+                renderProducts();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+                showStatus("Gagal memuat produk", "red");
+            });
+        }
+
+        async function saveToDb(data, id = null) {
+            if (!currentUser) return;
+            const btn = document.getElementById('saveBtn');
+            const icon = document.getElementById('saveBtnIcon');
+            btn.disabled = true;
+            icon.className = "fas fa-spinner fa-spin";
+            try {
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
+                const payload = { ...data, updatedAt: serverTimestamp() };
+                if (id) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id), payload);
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(colRef, payload);
+                }
+                closeProductModal();
+            } catch (err) {
+                console.error("Save Error:", err);
+                alert("Gagal menyimpan ke database.");
+            } finally {
+                btn.disabled = false;
+                icon.className = "fas fa-save";
+            }
+        }
+
+        async function deleteFromDb(id) {
+            if (!isAdmin || !confirm("Hapus produk ini secara permanen?")) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'products', id));
+            } catch (err) {
+                alert("Gagal menghapus produk.");
+            }
+        }
+
+        // --- UI RENDERING ---
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = products.filter(p => 
+                (currentCategory === 'all' || p.category === currentCategory) && 
+                (p.name.toLowerCase().includes(search))
+            );
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="col-span-full py-20 text-center text-neutral-400 font-bold uppercase tracking-widest text-xs">Produk Tidak Ditemukan</div>';
+                return;
+            }
+            grid.innerHTML = filtered.map(p => `
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group relative border border-neutral-100 flex flex-col h-full">
+                    <div class="aspect-[4/5] relative bg-neutral-100 overflow-hidden">
+                        <img src="${p.image || 'https://placehold.co/400x500?text=Brats+Collection'}" 
+                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                             alt="${p.name}">
+                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                             <button onclick="addToCart('${p.id}')" class="bg-white text-black w-10 h-10 rounded-full flex items-center justify-center hover:scale-110 transition"><i class="fas fa-cart-plus"></i></button>
+                        </div>
+                        ${isAdmin ? `
+                            <div class="absolute top-2 right-2 flex flex-col gap-2">
+                                <button onclick="editProduct('${p.id}')" class="bg-white/90 text-blue-600 w-8 h-8 rounded-lg shadow-sm flex items-center justify-center hover:bg-white transition"><i class="fas fa-edit text-xs"></i></button>
+                                <button onclick="deleteProduct('${p.id}')" class="bg-white/90 text-red-600 w-8 h-8 rounded-lg shadow-sm flex items-center justify-center hover:bg-white transition"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="p-4 flex flex-col flex-1">
+                        <span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1">${p.category}</span>
+                        <h3 class="font-bold text-sm text-neutral-800 line-clamp-2 mb-2 h-10">${p.name}</h3>
+                        <div class="mt-auto">
+                            <p class="text-blue-700 font-black text-base">Rp ${Number(p.price).toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- HANDLERS ---
+        window.handleFileSelect = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 800000) {
+                alert("Gambar terlalu besar! Gunakan gambar di bawah 800KB.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                base64Image = e.target.result;
+                document.getElementById('imagePreview').src = base64Image;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                document.getElementById('pImage').value = "";
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeSelectedImage = () => {
+            base64Image = "";
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('pImageFile').value = "";
+        };
+
+        function showStatus(text, colorClass) {
+            const el = document.getElementById('dbStatus');
+            el.innerHTML = `<span class="w-2 h-2 rounded-full bg-${colorClass}-500"></span> ${text}`;
+        }
+
+        window.filterCategory = (cat) => {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                const isActive = btn.innerText.toLowerCase() === (cat === 'all' ? 'semua' : cat);
+                btn.className = isActive 
+                    ? "cat-btn px-5 py-2 rounded-lg text-xs font-bold uppercase bg-black text-white transition"
+                    : "cat-btn px-5 py-2 rounded-lg text-xs font-bold uppercase text-neutral-400 hover:text-neutral-600 transition";
+            });
+            renderProducts();
+        };
+
+        window.toggleLoginModal = (open) => document.getElementById('loginModal').classList.toggle('hidden', !open);
+        
+        document.getElementById('doLoginBtn').onclick = () => {
+            const pin = document.getElementById('adminPin').value;
+            // PIN DIUBAH MENJADI 0531
+            if(pin === '0531') { 
+                isAdmin = true;
+                document.getElementById('adminActions').classList.remove('hidden');
+                document.getElementById('adminBtn').innerHTML = '<i class="fas fa-sign-out-alt text-red-600"></i>';
+                document.getElementById('adminBtn').onclick = () => location.reload();
+                toggleLoginModal(false);
+                renderProducts();
+            } else {
+                alert("PIN Keamanan Salah!");
+            }
+        };
+
+        window.toggleCart = (open) => {
+            const drawer = document.getElementById('cartDrawer');
+            const content = document.getElementById('cartContent');
+            if(open) {
+                drawer.classList.remove('hidden');
+                setTimeout(() => content.classList.remove('translate-x-full'), 10);
+                renderCart();
+            } else {
+                content.classList.add('translate-x-full');
+                setTimeout(() => drawer.classList.add('hidden'), 300);
+            }
+        };
+
+        window.addToCart = (id) => {
+            const product = products.find(p => p.id === id);
+            const exists = cart.find(i => i.id === id);
+            if(exists) exists.qty++;
+            else cart.push({...product, qty: 1});
+            updateCartUI();
+            toggleCart(true);
+        };
+
+        function updateCartUI() {
+            const count = cart.reduce((acc, curr) => acc + curr.qty, 0);
+            document.getElementById('cartCount').innerText = count;
+            document.getElementById('cartCount').classList.toggle('hidden', count === 0);
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            const footer = document.getElementById('cartFooter');
+            if(cart.length === 0) {
+                list.innerHTML = '<div class="text-center py-20 text-neutral-400 uppercase font-bold text-[10px] tracking-widest">Keranjang Kosong</div>';
+                footer.classList.add('hidden');
+            } else {
+                const total = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+                document.getElementById('cartTotal').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+                list.innerHTML = cart.map((item, idx) => `
+                    <div class="flex gap-4 group">
+                        <img src="${item.image || 'https://placehold.co/100'}" class="w-20 h-20 rounded-xl object-cover border">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-neutral-800 line-clamp-1">${item.name}</h4>
+                            <p class="text-xs text-neutral-400 uppercase font-bold mb-2">${item.category}</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-blue-700 font-black">Rp ${Number(item.price).toLocaleString('id-ID')}</span>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="updateQty(${idx}, -1)" class="w-6 h-6 border rounded-full flex items-center justify-center hover:bg-neutral-100"><i class="fas fa-minus text-[8px]"></i></button>
+                                    <span class="text-xs font-bold">${item.qty}</span>
+                                    <button onclick="updateQty(${idx}, 1)" class="w-6 h-6 border rounded-full flex items-center justify-center hover:bg-neutral-100"><i class="fas fa-plus text-[8px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                footer.classList.remove('hidden');
+            }
+        }
+
+        window.updateQty = (index, delta) => {
+            cart[index].qty += delta;
+            if(cart[index].qty <= 0) cart.splice(index, 1);
+            updateCartUI();
+            renderCart();
+        };
+
+        window.checkoutWA = () => {
+            const total = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+            let message = `Halo Brats Official, saya ingin memesan:\n\n`;
+            cart.forEach(i => {
+                message += `• ${i.name} (${i.qty}x) - Rp ${(i.price * i.qty).toLocaleString('id-ID')}\n`;
+            });
+            message += `\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nTerima kasih!`;
+            window.open(`https://wa.me/${STORE_INFO.phone}?text=${encodeURIComponent(message)}`);
+        };
+
+        window.openProductModal = () => {
+            document.getElementById('productForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('modalTitle').innerText = "TAMBAH PRODUK BARU";
+            removeSelectedImage();
+            document.getElementById('productModal').classList.remove('hidden');
+        };
+
+        window.closeProductModal = () => document.getElementById('productModal').classList.add('hidden');
+
+        window.editProduct = (id) => {
+            const p = products.find(x => x.id === id);
+            document.getElementById('editId').value = p.id;
+            document.getElementById('pName').value = p.name;
+            document.getElementById('pPrice').value = p.price;
+            document.getElementById('pCategory').value = p.category;
+            document.getElementById('pDesc').value = p.description || '';
+            document.getElementById('pImage').value = p.image && !p.image.startsWith('data:image') ? p.image : '';
+            if (p.image && p.image.startsWith('data:image')) {
+                base64Image = p.image;
+                document.getElementById('imagePreview').src = base64Image;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            } else {
+                removeSelectedImage();
+            }
+            document.getElementById('modalTitle').innerText = "EDIT PRODUK";
+            document.getElementById('productModal').classList.remove('hidden');
+        };
+
+        window.deleteProduct = (id) => deleteFromDb(id);
+
+        document.getElementById('productForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('pName').value,
+                price: Number(document.getElementById('pPrice').value),
+                category: document.getElementById('pCategory').value,
+                description: document.getElementById('pDesc').value,
+                image: base64Image || document.getElementById('pImage').value
+            };
+            await saveToDb(data, id);
+        };
+
+        document.getElementById('searchInput').oninput = renderProducts;
+
+        window.onload = () => {
+            document.getElementById('footerAddress').innerText = STORE_INFO.address;
+            initAuth();
+        };
+    </script>
+</body>
+</html>
